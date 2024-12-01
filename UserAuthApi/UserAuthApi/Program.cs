@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Mvc.Versioning;  
 using MongoDB.Driver;
 using System.Text;
 using UserAuthApi.Data;
@@ -9,12 +10,20 @@ using UserAuthApi.Middleware;
 using UserAuthApi.Repositories;
 using UserAuthApi.Services;
 using UserAuthApi.Models;
-using Microsoft.AspNetCore.Builder;
+using UserAuthApi.Filters;  
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddConsole();  
+
 // JWT Authentication configuration
 var key = Encoding.ASCII.GetBytes(builder.Configuration["JwtConfig:Secret"]);
+var issuer = builder.Configuration["JwtConfig:Issuer"];
+var audience = builder.Configuration["JwtConfig:Audience"];
+
+// JWT Authentication middleware setup
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -26,8 +35,11 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = true,
+        ValidAudience = audience,
+        ClockSkew = TimeSpan.Zero 
     };
 });
 
@@ -41,32 +53,56 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure MongoDB
-builder.Services.AddSingleton<IMongoClient, MongoClient>(
-    _ => new MongoClient(builder.Configuration.GetConnectionString("MongoDbConnection")));
+builder.Services.AddSingleton<IMongoClient, MongoClient>(_ =>
+    new MongoClient(builder.Configuration.GetConnectionString("MongoDbConnection")));
 
 // Register interfaces and services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
-
-builder.Services.AddControllers();
 builder.Services.AddScoped<PasswordHasher<User>>();
+
+// Add API versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.ReportApiVersions = true;
+});
+
+// Configure routing and Swagger
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
+// Register controllers and add exception filter globally
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ExceptionFilter>();  // Adds the filter globally
+});
+
+// Add problem details and swagger
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddProblemDetails();
+
+// Swagger configuration
 builder.Services.AddSwaggerGen(c =>
 {
-    // Define the Bearer token security scheme
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Please enter JWT Bearer token",
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey
+        Title = "User Authentication API",
+        Version = "v1"
     });
 
-    // Apply the security definition to all endpoints
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme."
+    });
+
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
         {
@@ -83,33 +119,54 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
+});
+
+// Register CustomAuthorizationHandler
+builder.Services.AddSingleton<IAuthorizationHandler, CustomAuthorizationHandler>();
+
 var app = builder.Build();
 
-// Ensure the database is created and seed data if necessary
+// Seed database roles
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    Seeder.SeedRoles(roleManager); // Call the seeding function with RoleManager
+    Seeder.SeedRoles(roleManager); // Implement role seeding in `Seeder`
 }
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "User Authentication API v1");
+    });
+}
+else
+{
+    app.UseWhen(
+        context => !context.Request.Path.StartsWithSegments("/swagger"),
+        appBuilder => appBuilder.UseHsts()
+    );
+
+    app.UseExceptionHandler("/Error");
 }
 
-app.UseHttpsRedirection();
+// Use custom error handling middleware
+app.UseMiddleware<ErrorHandlingMiddleware>();  // Use custom error handling middleware
+app.UseMiddleware<RequestLoggingMiddleware>();  // Add request logging middleware
 
-// Add custom middleware
-app.UseMiddleware<RequestLoggingMiddleware>();
+// Configure authentication and authorization
 app.UseRouting();
-// Enable authentication and authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map controllers to their routes
-app.MapControllers();
 
-// Run the application
+app.MapControllers();
 app.Run();
