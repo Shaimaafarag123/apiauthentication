@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using UserAuthApi.Models;
 using UserAuthApi.Services;
-using Microsoft.AspNetCore.Identity;  
+using Microsoft.AspNetCore.Identity;
 
 namespace UserAuthApi.Controllers
 {
@@ -12,13 +12,13 @@ namespace UserAuthApi.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IUserService _userService;
-        private readonly UserManager<User> _userManager;  
+        private readonly UserManager<User> _userManager;
 
         public AuthController(IAuthService authService, IUserService userService, UserManager<User> userManager)
         {
             _authService = authService;
             _userService = userService;
-            _userManager = userManager;  
+            _userManager = userManager;
         }
 
         [HttpPost("login")]
@@ -28,7 +28,7 @@ namespace UserAuthApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-
+            //Find User by Username
             var user = await _userManager.FindByNameAsync(loginUser.Username);
             if (user == null)
             {
@@ -44,7 +44,7 @@ namespace UserAuthApi.Controllers
 
             var authResponse = await _authService.AuthenticateAsync(loginUser.Username, loginUser.Password);
 
-            return Ok(authResponse);  
+            return Ok(authResponse);
         }
     }
 }

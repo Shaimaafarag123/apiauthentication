@@ -31,11 +31,21 @@ namespace UserAuthApi.Services
             if (verificationResult != PasswordVerificationResult.Success)
                 return null;
 
+            // Ensure user.Role is properly assigned and debug it
+            Console.WriteLine($"User Role: {user.Role}");
+
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, user.UserName), 
-                new Claim(ClaimTypes.Role, user.Role)      
+                 new Claim(ClaimTypes.Name, user.UserName),  
+                  new Claim(ClaimTypes.Role, user.Role)       
             };
+
+            // Check that claims are added correctly
+            Console.WriteLine("Claims:");
+            foreach (var claim in claims)
+            {
+                Console.WriteLine($"Claim Type: {claim.Type}, Value: {claim.Value}");
+            }
 
             var key = Encoding.ASCII.GetBytes(_configuration["JwtConfig:Secret"]);
 
@@ -54,5 +64,6 @@ namespace UserAuthApi.Services
                 Expiration = tokenDescriptor.Expires.Value
             };
         }
+
     }
 }

@@ -34,26 +34,26 @@ namespace UserAuthApi.Middleware
 
                 context.Request.EnableBuffering();
 
-            if (context.Request.ContentLength.HasValue && context.Request.ContentLength > MaxRequestBodySize)
-            {
-                log.Add("request_body", "Request body too large");
-            }
-            else
-            {
-                var requestBody = await new StreamReader(context.Request.Body).ReadToEndAsync();
+                if (context.Request.ContentLength.HasValue && context.Request.ContentLength > MaxRequestBodySize)
+                {
+                    log.Add("request_body", "Request body too large");
+                }
+                else
+                {
+                    var requestBody = await new StreamReader(context.Request.Body).ReadToEndAsync();
                     context.Request.Body.Seek(0, SeekOrigin.Begin);
 
                     log.Add("request_body", requestBody);
-            }
+                }
 
-            await collection.InsertOneAsync(log);
-        }
+                await collection.InsertOneAsync(log);
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error logging request: {ex.Message}");
             }
 
-    await _next(context);
+            await _next(context);
         }
     }
 }
