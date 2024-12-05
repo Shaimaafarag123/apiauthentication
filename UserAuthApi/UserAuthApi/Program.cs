@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Mvc.Versioning;  
+using Microsoft.AspNetCore.Mvc.Versioning;
 using MongoDB.Driver;
 using System.Text;
 using UserAuthApi.Data;
@@ -10,13 +11,17 @@ using UserAuthApi.Middleware;
 using UserAuthApi.Repositories;
 using UserAuthApi.Services;
 using UserAuthApi.Models;
-using UserAuthApi.Filters;  
+using UserAuthApi.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Logging.AddConsole();  
+// Add services to the container
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ExceptionFilter>(); // Global exception filter
+});
 
 // JWT Authentication configuration
 var key = Encoding.ASCII.GetBytes(builder.Configuration["JwtConfig:Secret"]);
@@ -39,7 +44,7 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = issuer,
         ValidateAudience = true,
         ValidAudience = audience,
-        ClockSkew = TimeSpan.Zero 
+        ClockSkew = TimeSpan.Zero
     };
 });
 
@@ -62,6 +67,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<PasswordHasher<User>>();
+builder.Services.AddScoped<LogService>();
 
 // Add API versioning
 builder.Services.AddApiVersioning(options =>
@@ -73,14 +79,6 @@ builder.Services.AddApiVersioning(options =>
 
 // Configure routing and Swagger
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
-
-// Register controllers and add exception filter globally
-builder.Services.AddControllers(options =>
-{
-    options.Filters.Add<ExceptionFilter>();  // Adds the filter globally
-});
-
-// Add problem details and swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();
 
@@ -125,8 +123,6 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
     options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
 });
-
-// Register CustomAuthorizationHandler
 builder.Services.AddSingleton<IAuthorizationHandler, CustomAuthorizationHandler>();
 
 var app = builder.Build();
@@ -158,15 +154,16 @@ else
     app.UseExceptionHandler("/Error");
 }
 
-// Use custom error handling middleware
-app.UseMiddleware<ErrorHandlingMiddleware>();  // Use custom error handling middleware
-app.UseMiddleware<RequestLoggingMiddleware>();  // Add request logging middleware
 
 // Configure authentication and authorization
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-
+// Map controllers and run the application
 app.MapControllers();
+// Custom Middleware
+app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseMiddleware<RequestLoggingMiddleware>();
+
 app.Run();
