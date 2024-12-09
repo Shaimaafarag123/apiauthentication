@@ -2,3 +2,7 @@ bin/
 obj/
 .vs/
 .vscode/
+*.user
+*.suo
+*.log
+*.tmp

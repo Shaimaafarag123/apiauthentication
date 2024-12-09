@@ -43,6 +43,7 @@ namespace UserAuthApi.Middleware
             ProblemDetails problemDetails;
             var source = "ErrorHandlingMiddleware";
 
+
             // Handle specific database exceptions
             switch (exception)
             {
@@ -97,12 +98,15 @@ namespace UserAuthApi.Middleware
                     {
                         Status = (int)HttpStatusCode.InternalServerError,
                         Title = "Internal Server Error",
+
                         Detail = exception.Message
                     };
                     break;
             }
 
-            await context.Response.WriteAsync(JsonConvert.SerializeObject(problemDetails));
+            //await context.Response.WriteAsync(JsonConvert.SerializeObject(problemDetails));
+            await logService.LogExceptionAsync( problemDetails.ToString(), source);
+
         }
     }
 }

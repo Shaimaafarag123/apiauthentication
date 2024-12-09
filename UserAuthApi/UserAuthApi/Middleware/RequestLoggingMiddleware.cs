@@ -26,7 +26,6 @@ namespace UserAuthApi.Middleware
             {
                 
 
-                // Proceed with the request
                 await _next(context);
 
                 // Log the successful request after it has been processed
@@ -47,7 +46,7 @@ namespace UserAuthApi.Middleware
                             errorMessage = "Bad Request";
                             break;
                         case 401:
-                            errorMessage = "Unauthorized";
+                             errorMessage = "Unauthorized";
                             break;
                         case 404:
                             errorMessage = "Not Found";
@@ -60,7 +59,6 @@ namespace UserAuthApi.Middleware
                             break;
                     }
 
-                    //switch case 
                     await logService.LogExceptionAsync(errorMessage, "RequestLoggingMiddleware");
                 }
             }

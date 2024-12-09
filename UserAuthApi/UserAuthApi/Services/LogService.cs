@@ -7,18 +7,23 @@ namespace UserAuthApi.Services
 {
     public class LogService
     {
-        private readonly IMongoCollection<BsonDocument> _logsCollection;
-        private readonly IMongoCollection<BsonDocument> _exceptionsCollection;
-        private readonly IMongoCollection<BsonDocument> _requestsCollection; 
+                           
+        private readonly IMongoDatabase  database;
 
         public LogService(IMongoClient mongoClient)
         {
-            var database = mongoClient.GetDatabase("logs");
-            _logsCollection = database.GetCollection<BsonDocument>("logs");
-            _exceptionsCollection = database.GetCollection<BsonDocument>("exceptions");
-            _requestsCollection = database.GetCollection<BsonDocument>("requests"); // 
+            database = mongoClient.GetDatabase("logs");
+           
         }
 
+
+
+        private async Task LogAsync( BsonDocument doc  , string collection)
+        {
+            IMongoCollection<BsonDocument> LogCollection = database.GetCollection<BsonDocument>(collection);
+
+            await LogCollection.InsertOneAsync(doc);
+        }
         // Method to log successful requests
         public async Task LogRequestAsync(string message, string source)
         {
@@ -29,7 +34,7 @@ namespace UserAuthApi.Services
                 { "timestamp", DateTime.UtcNow }
             };
 
-            await _requestsCollection.InsertOneAsync(requestLog);
+            await LogAsync(requestLog, "requests");
         }
 
         // Method to log exceptions
@@ -41,8 +46,8 @@ namespace UserAuthApi.Services
                 { "source", source },
                 { "timestamp", DateTime.UtcNow }
             };
+            await LogAsync(exceptionLog, "exceptions");
 
-            await _logsCollection.InsertOneAsync(exceptionLog);
         }
 
         // Method to log general messages (can be used for other types of logs)
@@ -55,7 +60,7 @@ namespace UserAuthApi.Services
                 { "timestamp", DateTime.UtcNow }
             };
 
-            await _logsCollection.InsertOneAsync(log);
+            //await _logsCollection.InsertOneAsync(log);
         }
     }
 }

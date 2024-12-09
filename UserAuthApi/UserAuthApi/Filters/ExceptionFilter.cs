@@ -15,6 +15,7 @@ namespace UserAuthApi.Filters
             var logger = context.HttpContext.RequestServices.GetService<ILogger<ExceptionFilter>>();
             logger?.LogError(exception, "Unhandled exception in controller");
 
+
             context.Result = new ObjectResult(new ProblemDetails
             {
                 Status = statuCode,
