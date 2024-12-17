@@ -127,9 +127,15 @@ builder.Services.AddSingleton<IAuthorizationHandler, CustomAuthorizationHandler>
 
 var app = builder.Build();
 
-// Seed database roles
+// Seed database roles and apply migrations
 using (var scope = app.Services.CreateScope())
 {
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Apply migrations to ensure the database schema is up-to-date
+    dbContext.Database.Migrate();
+
+    // Seed roles
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     Seeder.SeedRoles(roleManager); // Implement role seeding in Seeder
 }
@@ -154,7 +160,6 @@ else
     app.UseExceptionHandler("/Error");
 }
 
-
 // Configure authentication and authorization
 app.UseRouting();
 app.UseAuthentication();
@@ -162,6 +167,7 @@ app.UseAuthorization();
 
 // Map controllers and run the application
 app.MapControllers();
+
 // Custom Middleware
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();

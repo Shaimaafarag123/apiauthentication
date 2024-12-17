@@ -12,8 +12,8 @@ using UserAuthApi.Data;
 namespace UserAuthApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241129200003_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20241217123902_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
