@@ -8,7 +8,7 @@ namespace UserAuthApi.Controllers
     public class UserController : ControllerBase
     {
         [HttpGet("data")]
-        [Authorize(Policy = "UserOnly")]
+        [Authorize(Roles = "UserOnly")]
         public IActionResult GetUserData()
         {
             return Ok(new { message = "User data" });

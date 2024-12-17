@@ -15,13 +15,11 @@ namespace UserAuthApi.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly ILogger<RegisterController> _logger;
-
         public RegisterController(UserManager<User> userManager, ILogger<RegisterController> logger)
         {
             _userManager = userManager;
             _logger = logger;
         }
-
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] RegisterUserDto request)
         {
@@ -35,18 +33,14 @@ namespace UserAuthApi.Controllers
             {
                 return Conflict(new { message = "Username already exists." });
             }
-
-
             //Create New User
             var newUser = new User
             {
                 UserName = request.Username,
                 Role = request.Role
             };
-
             //Save New User
             var result = await _userManager.CreateAsync(newUser, request.Password);
-
             if (!result.Succeeded)
             {
                 //user creation fails, logs the errors and returns a 400 Bad Request with error details.
@@ -56,7 +50,6 @@ namespace UserAuthApi.Controllers
                 }
                 return BadRequest(new { message = "User registration failed.", errors = result.Errors });
             }
-
             if (!string.IsNullOrEmpty(request.Role))
             {
                 var roleResult = await _userManager.AddToRoleAsync(newUser, request.Role);
@@ -64,9 +57,7 @@ namespace UserAuthApi.Controllers
                 {
                     _logger.LogError("Error assigning role: " + string.Join(", ", roleResult.Errors));
                 }
-
             }
-
             return CreatedAtAction(nameof(Register), new { username = newUser.UserName }, new { message = "User registered successfully." });
         }
     }

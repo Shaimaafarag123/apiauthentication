@@ -131,7 +131,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    Seeder.SeedRoles(roleManager); // Implement role seeding in `Seeder`
+    Seeder.SeedRoles(roleManager); // Implement role seeding in Seeder
 }
 
 // Configure the HTTP request pipeline
