@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using System.Linq;
 using System.Threading.Tasks;
+using UserAuthApi.Models;
 
 public class CustomAuthorizationHandler : AuthorizationHandler<IAuthorizationRequirement>
 {
@@ -13,7 +14,7 @@ public class CustomAuthorizationHandler : AuthorizationHandler<IAuthorizationReq
 
         if (roleClaim != null && roleClaim.Value == "Admin")
         {
-            context.Succeed(requirement);  
+            context.Succeed(requirement);
         }
         else
         {

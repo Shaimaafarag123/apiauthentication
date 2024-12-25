@@ -36,8 +36,8 @@ namespace UserAuthApi.Services
 
             var claims = new List<Claim>
             {
-                 new Claim(ClaimTypes.Name, user.UserName),  
-                  new Claim(ClaimTypes.Role, user.Role)       
+                 new Claim(ClaimTypes.Name, user.UserName),
+                  new Claim(ClaimTypes.Role, user.Role)
             };
 
             // Check that claims are added correctly
@@ -52,7 +52,7 @@ namespace UserAuthApi.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddHours(1), 
+                Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var tokenHandler = new JwtSecurityTokenHandler();

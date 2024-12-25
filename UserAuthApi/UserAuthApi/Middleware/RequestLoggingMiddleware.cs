@@ -10,7 +10,7 @@ namespace UserAuthApi.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly IServiceProvider _serviceProvider;
-        private const int MaxRequestBodySize = 1024 * 1024; 
+        private const int MaxRequestBodySize = 1024 * 1024;
         public RequestLoggingMiddleware(RequestDelegate next, IServiceProvider serviceProvider)
         {
             _next = next;
@@ -24,7 +24,7 @@ namespace UserAuthApi.Middleware
 
             try
             {
-                
+
 
                 await _next(context);
 
@@ -46,7 +46,7 @@ namespace UserAuthApi.Middleware
                             errorMessage = "Bad Request";
                             break;
                         case 401:
-                             errorMessage = "Unauthorized";
+                            errorMessage = "Unauthorized";
                             break;
                         case 404:
                             errorMessage = "Not Found";

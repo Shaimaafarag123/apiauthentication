@@ -4,18 +4,18 @@ using System.Security.Claims;
 
 namespace UserAuthApi.Controllers
 {
+    // Controllers/AdminController.cs
     [ApiController]
     [Route("api/admin")]
+    [Authorize(Policy = "AdminPolicy")] 
     public class AdminController : ControllerBase
     {
-        [HttpGet("data")] 
-        //[Authorize(Policy = "AdminOnly")] 
+        [HttpGet("data")]
         public IActionResult GetAdminData()
-
         {
-
             return Ok(new { message = "Admin data" });
         }
     }
+
 }
 

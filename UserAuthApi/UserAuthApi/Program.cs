@@ -14,6 +14,7 @@ using UserAuthApi.Models;
 using UserAuthApi.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UserAuthApi.Seeds;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +69,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddScoped<LogService>();
+//builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 // Add API versioning
 builder.Services.AddApiVersioning(options =>
@@ -127,19 +129,23 @@ builder.Services.AddSingleton<IAuthorizationHandler, CustomAuthorizationHandler>
 
 var app = builder.Build();
 
-// Seed database roles and apply migrations
+// Seed database roles and users
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
 
     // Apply migrations to ensure the database schema is up-to-date
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     dbContext.Database.Migrate();
 
     // Seed roles
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    Seeder.SeedRoles(roleManager); // Implement role seeding in Seeder
-}
+    await DefaultRoles.Seedasync(roleManager);
 
+    // Seed users
+    await DefaultUsers.SeedBaicUserAsync(userManager);
+    await DefaultUsers.SeedSuperadminAsync(userManager, roleManager);
+}
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -160,16 +166,15 @@ else
     app.UseExceptionHandler("/Error");
 }
 
-// Configure authentication and authorization
+
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
 // Map controllers and run the application
 app.MapControllers();
-
-// Custom Middleware
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.Run();
+

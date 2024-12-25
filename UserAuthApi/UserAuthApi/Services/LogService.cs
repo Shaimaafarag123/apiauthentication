@@ -7,18 +7,18 @@ namespace UserAuthApi.Services
 {
     public class LogService
     {
-                           
-        private readonly IMongoDatabase  database;
+
+        private readonly IMongoDatabase database;
 
         public LogService(IMongoClient mongoClient)
         {
             database = mongoClient.GetDatabase("logs");
-           
+
         }
 
 
 
-        private async Task LogAsync( BsonDocument doc  , string collection)
+        private async Task LogAsync(BsonDocument doc, string collection)
         {
             IMongoCollection<BsonDocument> LogCollection = database.GetCollection<BsonDocument>(collection);
 

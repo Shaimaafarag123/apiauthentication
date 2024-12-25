@@ -105,7 +105,7 @@ namespace UserAuthApi.Middleware
             }
 
             //await context.Response.WriteAsync(JsonConvert.SerializeObject(problemDetails));
-            await logService.LogExceptionAsync( problemDetails.ToString(), source);
+            await logService.LogExceptionAsync(problemDetails.ToString(), source);
 
         }
     }
