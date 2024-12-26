@@ -24,20 +24,21 @@ namespace UserAuthApi.Controllers
             return Ok(new { message = "Admin data accessible to authorized users with the right permissions." });
         }
 
-        // Assign permission to a user (admin only)
-        [HttpPost("assign-permission/{userId}")]
-        public async Task<IActionResult> AssignPermission([FromRoute] string userId, [FromBody] string permission)
+        // Assign permission to a user by username
+        [HttpPost("assign-permission/{username}")]
+        public async Task<IActionResult> AssignPermission([FromRoute] string username, [FromBody] string permission)
         {
             try
             {
-                await _permissionService.AssignPermissionToUser(userId, permission);
-                return Ok(new { message = $"Permission '{permission}' assigned to user {userId}." });
+                await _permissionService.AssignPermissionToUserByUsername(username, permission);
+                return Ok(new { message = $"Permission '{permission}' assigned to user {username}." });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
+
         [HttpGet("test")]
         public IActionResult TestEndpoint()
         {
