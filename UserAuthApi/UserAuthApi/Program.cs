@@ -1,8 +1,7 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Versioning;
 using MongoDB.Driver;
 using System.Text;
@@ -14,7 +13,7 @@ using UserAuthApi.Models;
 using UserAuthApi.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UserAuthApi.Seeds;
+using UserAuthApi.Permissions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,7 +68,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddScoped<LogService>();
-//builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 // Add API versioning
 builder.Services.AddApiVersioning(options =>
@@ -124,6 +123,10 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
     options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
+    options.AddPolicy("ReadApi", policy => policy.RequireClaim("Permission", "ReadApi"));
+    options.AddPolicy("WriteApi", policy => policy.RequireClaim("Permission", "WriteApi"));
+    options.AddPolicy("AdminPermission", policy =>
+        policy.RequireClaim("Permission", "AdminPermission"));
 });
 builder.Services.AddSingleton<IAuthorizationHandler, CustomAuthorizationHandler>();
 
@@ -140,12 +143,11 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.Migrate();
 
     // Seed roles
-    await DefaultRoles.Seedasync(roleManager);
-
-    // Seed users
-    await DefaultUsers.SeedBaicUserAsync(userManager);
-    await DefaultUsers.SeedSuperadminAsync(userManager, roleManager);
+    Seeder.SeedRoles(roleManager).Wait();
+    Seeder.SeedPermissions(dbContext);
+    Seeder.SeedUsers(userManager, dbContext).Wait();
 }
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -166,7 +168,6 @@ else
     app.UseExceptionHandler("/Error");
 }
 
-
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -177,4 +178,3 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.Run();
-

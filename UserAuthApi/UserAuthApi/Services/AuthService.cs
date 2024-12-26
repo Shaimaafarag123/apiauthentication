@@ -6,17 +6,20 @@ using UserAuthApi.Repositories;
 using UserAuthApi.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
+using System.Linq;
 
 namespace UserAuthApi.Services
 {
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IPermissionService _permissionService;  // Inject IPermissionService
         private readonly IConfiguration _configuration;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthService(IUserRepository userRepository, IPermissionService permissionService, IConfiguration configuration)
         {
             _userRepository = userRepository;
+            _permissionService = permissionService;  // Injected
             _configuration = configuration;
         }
 
@@ -31,20 +34,20 @@ namespace UserAuthApi.Services
             if (verificationResult != PasswordVerificationResult.Success)
                 return null;
 
-            // Ensure user.Role is properly assigned and debug it
-            Console.WriteLine($"User Role: {user.Role}");
+            // Fetch permissions from the database
+            var permissions = await _permissionService.GetPermissionsForUser(user.Id);  // Using IPermissionService to get permissions
 
             var claims = new List<Claim>
-            {
-                 new Claim(ClaimTypes.Name, user.UserName),
-                  new Claim(ClaimTypes.Role, user.Role)
-            };
+        {
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Role, user.Role),
+            new Claim("Permission", "AdminPermission"),
+        };
 
-            // Check that claims are added correctly
-            Console.WriteLine("Claims:");
-            foreach (var claim in claims)
+            // Add permissions as claims
+            foreach (var permission in permissions)
             {
-                Console.WriteLine($"Claim Type: {claim.Type}, Value: {claim.Value}");
+                claims.Add(new Claim("Permission", permission));
             }
 
             var key = Encoding.ASCII.GetBytes(_configuration["JwtConfig:Secret"]);
@@ -64,6 +67,6 @@ namespace UserAuthApi.Services
                 Expiration = tokenDescriptor.Expires.Value
             };
         }
-
     }
+
 }
