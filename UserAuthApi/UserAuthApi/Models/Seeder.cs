@@ -11,21 +11,30 @@ namespace UserAuthApi.Models
     {
         public static void SeedPermissions(AppDbContext context)
         {
-            if (!context.Permissions.Any())
+            try
             {
-                var permissions = new[]
+                if (!context.Permissions.Any())
                 {
-                    new Permission { Name = "ReadApi" },
-                    new Permission { Name = "WriteApi" },
-                    new Permission { Name = "AdminPermission" }
-                };
+                    var permissions = new[]
+                    {
+                new Permission { Name = "ReadApi" },
+                new Permission { Name = "WriteApi" },
+                new Permission { Name = "AdminPermission" }
+            };
 
-                context.Permissions.AddRange(permissions);
-                context.SaveChanges();
+                    context.Permissions.AddRange(permissions);
+                    context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error seeding permissions: {ex.Message}");
             }
         }
 
-        public static async Task SeedRoles(RoleManager<IdentityRole> roleManager)
+
+        public static async
+            Task SeedRoles(RoleManager<IdentityRole> roleManager)
         {
             var roleNames = new[] { "user", "admin" };
             foreach (var roleName in roleNames)
@@ -55,7 +64,12 @@ namespace UserAuthApi.Models
                 // Add Admin permissions
                 var permissionService = new PermissionService(context);
                 await permissionService.AssignPermissionToUser(user.Id, "AdminPermission");
+
+                // Add ReadApi and WriteApi permissions
+                await permissionService.AssignPermissionToUser(user.Id, "ReadApi");
+                await permissionService.AssignPermissionToUser(user.Id, "WriteApi");
             }
         }
+
     }
 }

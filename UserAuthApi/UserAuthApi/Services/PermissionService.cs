@@ -29,51 +29,55 @@ namespace UserAuthApi.Services
         // Assign a permission to a user by their user ID
         public async Task AssignPermissionToUser(string userId, string permission)
         {
-            var permissionObj = await _context.Permissions
-                .FirstOrDefaultAsync(p => p.Name == permission);
-
-            if (permissionObj == null)
-            {
-                throw new Exception($"Permission '{permission}' not found.");
-            }
-
-            var userPermission = new UserPermission
-            {
-                UserId = userId,
-                PermissionId = permissionObj.Id
-            };
-
-            await _context.UserPermissions.AddAsync(userPermission);
-            await _context.SaveChangesAsync();
+            await AssignPermissionsToUser(userId, new[] { permission });
         }
 
         // Assign a permission to a user by their username
         public async Task AssignPermissionToUserByUsername(string username, string permission)
         {
-            // Find the user by username
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
-
             if (user == null)
             {
-                throw new Exception($"User '{username}' not found.");
+                throw new UserNotFoundException(username);
             }
 
-            // Fetch the Permission object from the database
-            var permissionObj = await _context.Permissions.FirstOrDefaultAsync(p => p.Name == permission);
+            await AssignPermissionsToUser(user.Id, new[] { permission });
+        }
 
-            if (permissionObj == null)
+        // Batch permission assignment to a user
+        public async Task AssignPermissionsToUser(string userId, IEnumerable<string> permissions)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
             {
-                throw new Exception($"Permission '{permission}' not found.");
+                throw new UserNotFoundException(userId);
             }
 
-            // Create the UserPermission entity
-            var userPermission = new UserPermission
-            {
-                UserId = user.Id,
-                PermissionId = permissionObj.Id
-            };
+            var permissionsToAssign = await _context.Permissions
+                .Where(p => permissions.Contains(p.Name))
+                .ToListAsync();
 
-            await _context.UserPermissions.AddAsync(userPermission);
+            if (permissionsToAssign.Count != permissions.Distinct().Count())
+            {
+                throw new PermissionNotFoundException("Some permissions are invalid.");
+            }
+
+            var userPermissions = await _context.UserPermissions
+                .Where(up => up.UserId == userId && permissionsToAssign.Select(p => p.Id).Contains(up.PermissionId))
+                .ToListAsync();
+
+            if (userPermissions.Any())
+            {
+                throw new PermissionAlreadyAssignedException("One or more permissions are already assigned.");
+            }
+
+            var userPermissionEntities = permissionsToAssign.Select(p => new UserPermission
+            {
+                UserId = userId,
+                PermissionId = p.Id
+            });
+
+            await _context.UserPermissions.AddRangeAsync(userPermissionEntities);
             await _context.SaveChangesAsync();
         }
 
@@ -83,4 +87,21 @@ namespace UserAuthApi.Services
             return await _context.Permissions.ToListAsync();
         }
     }
+
+    // Custom exceptions for user and permission not found scenarios
+    public class UserNotFoundException : Exception
+    {
+        public UserNotFoundException(string username) : base($"User '{username}' not found.") { }
+    }
+
+    public class PermissionNotFoundException : Exception
+    {
+        public PermissionNotFoundException(string permission) : base($"Permission '{permission}' not found.") { }
+    }
+
+    public class PermissionAlreadyAssignedException : Exception
+    {
+        public PermissionAlreadyAssignedException(string message) : base(message) { }
+    }
 }
+
