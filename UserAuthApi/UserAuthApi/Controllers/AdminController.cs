@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UserAuthApi.Services;
 
@@ -9,7 +10,8 @@ namespace UserAuthApi.Controllers
 {
     [ApiController]
     [Route("api/admin")]
-    [Authorize(Roles = "admin")]
+    [Authorize(Policy = "AdminOnly")]
+
     public class AdminController : ControllerBase
     {
         private readonly IPermissionService _permissionService;
@@ -20,7 +22,6 @@ namespace UserAuthApi.Controllers
         }
 
         [HttpGet("data")]
-        [Authorize(Policy = "AdminPermission")]
         public IActionResult GetAdminData()
         {
             return Ok(new { message = "Admin data accessible to authorized users with the right permissions." });
@@ -28,11 +29,11 @@ namespace UserAuthApi.Controllers
 
         // Assign a single permission to a user by username
         [HttpPost("assign-permission/{username}")]
+        [Authorize(Policy = "RequiresPermission")]
         public async Task<IActionResult> AssignPermission([FromRoute] string username, [FromBody] string permission)
         {
             try
             {
-                // Validate the permission before assigning
                 var allPermissions = await _permissionService.GetAllPermissions();
                 if (!allPermissions.Any(p => p.Name == permission))
                 {
@@ -58,6 +59,7 @@ namespace UserAuthApi.Controllers
 
         // Assign multiple permissions to a user by username
         [HttpPost("assign-permissions/{username}")]
+        [Authorize(Policy = "RequiresPermission")] 
         public async Task<IActionResult> AssignPermissions([FromRoute] string username, [FromBody] List<string> permissions)
         {
             try

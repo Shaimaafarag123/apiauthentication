@@ -12,8 +12,8 @@ using UserAuthApi.Data;
 namespace UserAuthApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241226130252_userauthenticate")]
-    partial class userauthenticate
+    [Migration("20241231135456_AddPermissionsAndUserPermissions2")]
+    partial class AddPermissionsAndUserPermissions2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -244,22 +244,18 @@ namespace UserAuthApi.Migrations
 
             modelBuilder.Entity("UserAuthApi.Permissions.UserPermission", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("PermissionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("Id");
+                    b.HasKey("UserId", "PermissionId");
 
                     b.HasIndex("PermissionId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("UserPermissions");
                 });
@@ -318,7 +314,7 @@ namespace UserAuthApi.Migrations
             modelBuilder.Entity("UserAuthApi.Permissions.UserPermission", b =>
                 {
                     b.HasOne("UserAuthApi.Permissions.Permission", "Permission")
-                        .WithMany()
+                        .WithMany("UserPermissions")
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -335,6 +331,11 @@ namespace UserAuthApi.Migrations
                 });
 
             modelBuilder.Entity("User", b =>
+                {
+                    b.Navigation("UserPermissions");
+                });
+
+            modelBuilder.Entity("UserAuthApi.Permissions.Permission", b =>
                 {
                     b.Navigation("UserPermissions");
                 });

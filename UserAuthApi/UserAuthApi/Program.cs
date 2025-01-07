@@ -20,7 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add<ExceptionFilter>(); // Global exception filter
+    options.Filters.Add<ExceptionFilter>(); 
 });
 
 // JWT Authentication configuration
@@ -51,7 +51,7 @@ builder.Services.AddAuthentication(options =>
 // Configure ASP.NET Core Identity
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders(); 
 
 // Configure SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -121,13 +121,17 @@ builder.Services.AddSwaggerGen(c =>
 // Authorization policies
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
     options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
     options.AddPolicy("ReadApi", policy => policy.RequireClaim("Permission", "ReadApi"));
     options.AddPolicy("WriteApi", policy => policy.RequireClaim("Permission", "WriteApi"));
-    options.AddPolicy("AdminPermission", policy =>
-        policy.RequireClaim("Permission", "AdminPermission"));
+    options.AddPolicy("RequiresPermission", policy =>
+    {
+        policy.RequireRole("admin")
+              .RequireClaim("Permission", "AdminPermission");
+    });
 });
+
 builder.Services.AddSingleton<IAuthorizationHandler, CustomAuthorizationHandler>();
 
 var app = builder.Build();

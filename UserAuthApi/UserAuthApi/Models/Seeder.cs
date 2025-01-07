@@ -17,10 +17,10 @@ namespace UserAuthApi.Models
                 {
                     var permissions = new[]
                     {
-                new Permission { Name = "ReadApi" },
-                new Permission { Name = "WriteApi" },
-                new Permission { Name = "AdminPermission" }
-            };
+                    new Permission { Name = "ReadApi" },
+                    new Permission { Name = "WriteApi" },
+                    new Permission { Name = "AdminPermission" }
+                };
 
                     context.Permissions.AddRange(permissions);
                     context.SaveChanges();
@@ -32,9 +32,7 @@ namespace UserAuthApi.Models
             }
         }
 
-
-        public static async
-            Task SeedRoles(RoleManager<IdentityRole> roleManager)
+        public static async Task SeedRoles(RoleManager<IdentityRole> roleManager)
         {
             var roleNames = new[] { "user", "admin" };
             foreach (var roleName in roleNames)
@@ -61,15 +59,13 @@ namespace UserAuthApi.Models
                 await userManager.CreateAsync(user, "Password123!");
                 await userManager.AddToRoleAsync(user, "admin");
 
-                // Add Admin permissions
+                // Assign permissions
                 var permissionService = new PermissionService(context);
                 await permissionService.AssignPermissionToUser(user.Id, "AdminPermission");
-
-                // Add ReadApi and WriteApi permissions
                 await permissionService.AssignPermissionToUser(user.Id, "ReadApi");
                 await permissionService.AssignPermissionToUser(user.Id, "WriteApi");
             }
         }
-
     }
+
 }

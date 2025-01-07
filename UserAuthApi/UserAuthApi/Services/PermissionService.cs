@@ -41,8 +41,17 @@ namespace UserAuthApi.Services
                 throw new UserNotFoundException(username);
             }
 
+            var existingPermission = await _context.UserPermissions
+                .AnyAsync(up => up.UserId == user.Id && up.Permission.Name == permission);
+
+            if (existingPermission)
+            {
+                throw new PermissionAlreadyAssignedException($"Permission '{permission}' is already assigned to user '{username}'.");
+            }
+
             await AssignPermissionsToUser(user.Id, new[] { permission });
         }
+
 
         // Batch permission assignment to a user
         public async Task AssignPermissionsToUser(string userId, IEnumerable<string> permissions)
@@ -57,29 +66,37 @@ namespace UserAuthApi.Services
                 .Where(p => permissions.Contains(p.Name))
                 .ToListAsync();
 
+            // Check if all permissions are valid
             if (permissionsToAssign.Count != permissions.Distinct().Count())
             {
                 throw new PermissionNotFoundException("Some permissions are invalid.");
             }
 
-            var userPermissions = await _context.UserPermissions
-                .Where(up => up.UserId == userId && permissionsToAssign.Select(p => p.Id).Contains(up.PermissionId))
+            // Get already assigned permissions
+            var existingPermissionIds = await _context.UserPermissions
+                .Where(up => up.UserId == userId)
+                .Select(up => up.PermissionId)
                 .ToListAsync();
 
-            if (userPermissions.Any())
+            // Filter out already assigned permissions
+            var newPermissions = permissionsToAssign
+                .Where(p => !existingPermissionIds.Contains(p.Id))
+                .Select(p => new UserPermission
+                {
+                    UserId = userId,
+                    PermissionId = p.Id
+                })
+                .ToList();
+
+            if (!newPermissions.Any())
             {
-                throw new PermissionAlreadyAssignedException("One or more permissions are already assigned.");
+                throw new PermissionAlreadyAssignedException("All permissions are already assigned.");
             }
 
-            var userPermissionEntities = permissionsToAssign.Select(p => new UserPermission
-            {
-                UserId = userId,
-                PermissionId = p.Id
-            });
-
-            await _context.UserPermissions.AddRangeAsync(userPermissionEntities);
+            await _context.UserPermissions.AddRangeAsync(newPermissions);
             await _context.SaveChangesAsync();
         }
+
 
         // Retrieve all permissions from the database
         public async Task<IEnumerable<Permission>> GetAllPermissions()
@@ -104,4 +121,3 @@ namespace UserAuthApi.Services
         public PermissionAlreadyAssignedException(string message) : base(message) { }
     }
 }
-
