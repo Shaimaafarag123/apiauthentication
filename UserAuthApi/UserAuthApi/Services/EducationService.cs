@@ -4,7 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 
 public class EducationService
-{
+{ 
     private readonly string _connectionString;
 
     public EducationService(IConfiguration configuration)

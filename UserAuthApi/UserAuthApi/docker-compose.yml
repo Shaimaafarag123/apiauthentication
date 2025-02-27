@@ -1,0 +1,50 @@
+﻿services:
+  userauthapi:
+    build: .
+    container_name: userauthapi
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "8080:8080"
+    networks:
+      - app_network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: sa
+      MONGO_INITDB_ROOT_PASSWORD: 123
+    ports:
+      - "27017:27017"
+    networks:
+      - app_network
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    restart: always
+    environment:
+      SA_PASSWORD: "shaimaa@123"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    networks:
+      - app_network
+    healthcheck:
+      test: [
+        "CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'shaimaa@123' -Q 'SELECT 1' || exit 1"
+      ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  app_network:
+    driver: bridge
